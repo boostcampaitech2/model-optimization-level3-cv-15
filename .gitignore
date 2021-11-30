@@ -1,0 +1,11 @@
+*.jpg
+*.pth
+*.pt
+*.ts
+*.db
+*.sh
+*.txt
+*.out
+*input*/
+*wandb*/
+*pycache*/

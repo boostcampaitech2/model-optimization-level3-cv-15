@@ -21,6 +21,8 @@ from tqdm import tqdm
 
 from src.utils.torch_utils import save_model
 
+import wandb
+
 
 def _get_n_data_from_dataloader(dataloader: DataLoader) -> int:
     """Get a number of data in dataloader.
@@ -131,6 +133,7 @@ class TorchTrainer:
 
         for epoch in range(n_epoch):
             running_loss, correct, total = 0.0, 0, 0
+            train_batch_num = len(train_dataloader)
             preds, gt = [], []
             pbar = tqdm(enumerate(train_dataloader), total=len(train_dataloader))
             self.model.train()
@@ -172,9 +175,25 @@ class TorchTrainer:
                 )
             pbar.close()
 
-            _, test_f1, test_acc = self.test(
+            # print(f"train_batch_num : {train_batch_num}")
+            # print(f"Loss : {float(running_loss/(train_batch_num+1))}, type : {type(float(running_loss/(train_batch_num+1)))}")
+            # print(f"Acc : {float((correct/total) * 100)}, type : {type(float((correct/total) * 100))}")
+            # print(f"F1(macro) : {float(f1_score(y_true=gt, y_pred=preds, labels=label_list, average='macro', zero_division=0))},\
+            #         type : {type(float(f1_score(y_true=gt, y_pred=preds, labels=label_list, average='macro', zero_division=0)))}")
+            # print(f"last lr : {self.scheduler.get_last_lr()[0]}, type : {type(self.scheduler.get_last_lr()[0])},,,, {float(self.scheduler.get_last_lr()[0])}")
+
+            test_loss, test_f1, test_acc = self.test(
                 model=self.model, test_dataloader=val_dataloader
             )
+
+            if test_loss > 10:
+                test_loss = 0
+
+            wandb.log({"Train_Loss" : float(running_loss/(train_batch_num+1)), "Train_Acc": float((correct/total) * 100),
+                        "Train_F1_Score" : float(f1_score(y_true=gt, y_pred=preds, labels=label_list, average='macro', zero_division=0).tolist()),
+                        "Valid_Loss" : float(test_loss), "Valid_Acc": float(test_f1) * 100, "Valid_F1_Score" : float(test_acc),
+                        "Learning Rate" : float(self.scheduler.get_last_lr()[0])})
+
             if best_test_f1 > test_f1:
                 continue
             best_test_acc = test_acc

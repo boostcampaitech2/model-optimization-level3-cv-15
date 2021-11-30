@@ -20,6 +20,30 @@ from src.trainer import TorchTrainer
 from src.utils.common import get_label_counts, read_yaml
 from src.utils.torch_utils import check_runtime, model_info
 
+import shutil
+import wandb
+
+def get_optimizer(optimizer_option, model, learning_rate):
+    optimizer = None
+
+    if optimizer_option.lower() == 'sgd':
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    elif optimizer_option.lower() == 'asgd':
+        optimizer = torch.optim.ASGD(model.parameters(), lr=learning_rate, lambd=0.0001, alpha=0.75, t0=1000000.0, weight_decay=0)
+    elif optimizer_option.lower() == 'momentum':
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+    elif optimizer_option.lower() == 'adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    elif optimizer_option.lower() == 'adamax':
+        optimizer = torch.optim.Adamax(model.parameters(), lr=learning_rate, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
+    elif optimizer_option.lower() == 'adamw':
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+    elif optimizer_option.lower() == 'nadam':
+        optimizer = torch.optim.NAdam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, momentum_decay=0.004)
+    elif optimizer_option.lower() == 'radam':
+        optimizer = torch.optim.RAdam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
+    
+    return optimizer
 
 def train(
     model_config: Dict[str, Any],
@@ -28,6 +52,16 @@ def train(
     fp16: bool,
     device: torch.device,
 ) -> Tuple[float, float, float]:
+
+    parameters = model_config
+    parameters.update(data_config)
+    print(parameters)
+    wandb.config = parameters
+    
+    wandb.init(project="lightweight", entity="falling90")
+    wandb.run.name = "lightweight" + "_" + data_config["OPTIMIZER"]
+    wandb.save()
+
     """Train."""
     # save model_config, data_config
     with open(os.path.join(log_dir, "data.yml"), "w") as f:
@@ -48,9 +82,9 @@ def train(
     train_dl, val_dl, test_dl = create_dataloader(data_config)
 
     # Create optimizer, scheduler, criterion
-    optimizer = torch.optim.SGD(
-        model_instance.model.parameters(), lr=data_config["INIT_LR"], momentum=0.9
-    )
+    # optimizer = torch.optim.SGD(model_instance.model.parameters(), lr=data_config["INIT_LR"], momentum=0.9)
+    optimizer = get_optimizer(data_config["OPTIMIZER"], model_instance.model, learning_rate=data_config["INIT_LR"])
+    
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer=optimizer,
         max_lr=data_config["INIT_LR"],
@@ -105,20 +139,27 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data", default="configs/data/taco.yaml", type=str, help="data config"
     )
+    parser.add_argument(
+        "--optim", default="adamax", type=str, help="data config"
+    )
     args = parser.parse_args()
 
     model_config = read_yaml(cfg=args.model)
     data_config = read_yaml(cfg=args.data)
 
     data_config["DATA_PATH"] = os.environ.get("SM_CHANNEL_TRAIN", data_config["DATA_PATH"])
+    data_config["OPTIMIZER"] = args.optim
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     log_dir = os.environ.get("SM_MODEL_DIR", os.path.join("exp", 'latest'))
 
-    if os.path.exists(log_dir): 
-        modified = datetime.fromtimestamp(os.path.getmtime(log_dir + '/best.pt'))
-        new_log_dir = os.path.dirname(log_dir) + '/' + modified.strftime("%Y-%m-%d_%H-%M-%S")
-        os.rename(log_dir, new_log_dir)
+    if os.path.exists(log_dir):
+        if os.path.exists(log_dir + '/best.pt'):
+            modified = datetime.fromtimestamp(os.path.getmtime(log_dir + '/best.pt'))
+            new_log_dir = os.path.dirname(log_dir) + '/' + modified.strftime("%Y-%m-%d_%H-%M-%S")
+            os.rename(log_dir, new_log_dir)
+        else:
+            shutil.rmtree(log_dir)
 
     os.makedirs(log_dir, exist_ok=True)
 
