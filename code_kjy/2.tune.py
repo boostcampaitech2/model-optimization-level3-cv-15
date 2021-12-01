@@ -30,10 +30,16 @@ log_dir = os.environ.get("SM_MODEL_DIR", os.path.join("exp", 'optuna_latest/resu
 
 def search_hyperparam(trial: optuna.trial.Trial) -> Dict[str, Any]:
     """Search hyperparam from user-specified search space."""
-    epochs = trial.suggest_int("epochs", low=40, high=40, step=40)
-    img_size = trial.suggest_categorical("img_size", [112, 168, 224])
-    n_select = trial.suggest_int("n_select", low=0, high=4, step=2)
-    batch_size = trial.suggest_int("batch_size", low=16, high=32, step=16)
+    # epochs = trial.suggest_int("epochs", low=30, high=30, step=30)
+    # img_size = trial.suggest_categorical("img_size", [112, 168, 224])
+    # n_select = trial.suggest_int("n_select", low=0, high=4, step=2)
+    # batch_size = trial.suggest_int("batch_size", low=16, high=32, step=16)
+
+    epochs = 30
+    img_size = 112
+    n_select = 2
+    batch_size = 32
+    
     return {
         "EPOCHS": epochs,
         "IMG_SIZE": img_size,
@@ -436,7 +442,7 @@ def objective(trial: optuna.trial.Trial, device) -> Tuple[float, int, float]:
     loss, f1_score, acc_percent = trainer.test(model, test_dataloader=val_loader)
     params_nums = count_model_params(model)
     
-    with open('optuna_log.txt', 'a') as f:
+    with open('optuna_log2.txt', 'a') as f:
         f.write(str(parameters)+"\n")
         f.write(f"loss : {loss}, f1_score : {f1_score}, acc_percent : {acc_percent}\n")
         f.write(str(params_nums)+"\n")
@@ -502,8 +508,13 @@ def tune(gpu_id, storage: str = None):
         rdb_storage = None
     # Add stream handler of stdout to show the messages
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
-    study_name = "kjy-study"  # Unique identifier of the study.
-    rdb_storage = "sqlite:///{}.db".format(study_name)
+    
+    
+    # study_name = "kjy-study"  # Unique identifier of the study.
+    # rdb_storage = "sqlite:///{}.db".format(study_name)
+
+    study_name = "kjy-study2"  # Unique identifier of the study.
+    rdb_storage = "postgresql://optuna:1234@127.0.0.1:6006/optuna"
     
     study = optuna.create_study(
         directions=["maximize", "minimize", "minimize"],
