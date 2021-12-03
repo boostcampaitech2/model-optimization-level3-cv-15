@@ -7,5 +7,6 @@
 *.txt
 *.out
 *input*/
+*exp*/
 *wandb*/
 *pycache*/

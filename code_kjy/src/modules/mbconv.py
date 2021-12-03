@@ -146,12 +146,14 @@ class MBConvGenerator(GeneratorAbstract):
     """Bottleneck block generator."""
 
     def __init__(self, *args, **kwargs):
+        # self.args = expand_ratio, out_channel, stride, kernel_size
         super().__init__(*args, **kwargs)
-
+    
     @property
     def out_channel(self) -> int:
         """Get out channel size."""
-        return self._get_divisible_channel(self.args[0] * self.width_multiply)
+        # return self._get_divisible_channel(self.args[0] * self.width_multiply)
+        return self._get_divisible_channel(self.args[1] * self.width_multiply)
 
     @property
     def base_module(self) -> nn.Module:
@@ -165,8 +167,12 @@ class MBConvGenerator(GeneratorAbstract):
         repeat(=n), [c, t, s] // note original notation from paper is [t, c, n, s]
         """
         module = []
-        t, c, s, k = self.args  # c is equivalent as self.out_channel
-        inp, oup = self.in_channel, self.out_channel
+        
+        inp, oup, t, k, s, r, d = self.args  # c is equivalent as self.out_channel
+
+        # t, c, s, k = self.args  # c is equivalent as self.out_channel
+        # inp, oup = self.in_channel, self.out_channel
+
         for i in range(repeat):
             stride = s if i == 0 else 1
             module.append(
@@ -176,6 +182,8 @@ class MBConvGenerator(GeneratorAbstract):
                     expand_ratio=t,
                     stride=stride,
                     kernel_size=k,
+                    reduction_ration=r,
+                    drop_connect_rate=d,
                 )
             )
             inp = oup

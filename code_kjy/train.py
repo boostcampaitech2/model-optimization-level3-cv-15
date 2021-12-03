@@ -59,7 +59,7 @@ def train(
     wandb.config = parameters
     
     wandb.init(project="lightweight", entity="falling90")
-    wandb.run.name = "lightweight" + "_" + data_config["OPTIMIZER"]
+    wandb.run.name = "Final_lw_KJY"
     wandb.save()
 
     """Train."""
@@ -170,4 +170,3 @@ if __name__ == "__main__":
         fp16=data_config["FP16"],
         device=device,
     )
-

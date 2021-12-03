@@ -30,15 +30,15 @@ log_dir = os.environ.get("SM_MODEL_DIR", os.path.join("exp", 'optuna_latest/resu
 
 def search_hyperparam(trial: optuna.trial.Trial) -> Dict[str, Any]:
     """Search hyperparam from user-specified search space."""
-    # epochs = trial.suggest_int("epochs", low=30, high=30, step=30)
-    # img_size = trial.suggest_categorical("img_size", [112, 168, 224])
-    # n_select = trial.suggest_int("n_select", low=0, high=4, step=2)
-    # batch_size = trial.suggest_int("batch_size", low=16, high=32, step=16)
+    epochs = trial.suggest_int("epochs", low=30, high=30, step=30)
+    img_size = trial.suggest_categorical("img_size", [168, 224, 280])
+    n_select = trial.suggest_int("n_select", low=0, high=4, step=2)
+    batch_size = trial.suggest_int("batch_size", low=16, high=32, step=16)
 
-    epochs = 30
-    img_size = 112
-    n_select = 2
-    batch_size = 32
+    # epochs = 30
+    # img_size = 224
+    # n_select = 2
+    # batch_size = 32
     
     return {
         "EPOCHS": epochs,
@@ -430,8 +430,8 @@ def objective(trial: optuna.trial.Trial, device) -> Tuple[float, int, float]:
     parameters.update(data_config)
     print(parameters)
     # wandb.config = parameters
-    wandb.init(project="lightweight", entity="falling90", config=parameters)
-    wandb.run.name = "optim" + f"_{INDEX[0]}"
+    wandb.init(project="lightweight", entity="ptop", config=parameters)
+    wandb.run.name = "jy_optim" + f"_{INDEX[0]}"
     wandb.save()
 
     # loss, f1_score, acc_percent = 999999, -1, -1
@@ -442,7 +442,7 @@ def objective(trial: optuna.trial.Trial, device) -> Tuple[float, int, float]:
     loss, f1_score, acc_percent = trainer.test(model, test_dataloader=val_loader)
     params_nums = count_model_params(model)
     
-    with open('optuna_log2.txt', 'a') as f:
+    with open('optuna_log3.txt', 'a') as f:
         f.write(str(parameters)+"\n")
         f.write(f"loss : {loss}, f1_score : {f1_score}, acc_percent : {acc_percent}\n")
         f.write(str(params_nums)+"\n")
@@ -513,8 +513,11 @@ def tune(gpu_id, storage: str = None):
     # study_name = "kjy-study"  # Unique identifier of the study.
     # rdb_storage = "sqlite:///{}.db".format(study_name)
 
-    study_name = "kjy-study2"  # Unique identifier of the study.
-    rdb_storage = "postgresql://optuna:1234@127.0.0.1:6006/optuna"
+    # study_name = "kjy-study2"  # Unique identifier of the study.
+    # rdb_storage = "postgresql://optuna:1234@127.0.0.1:6006/optuna"
+
+    study_name = "khs-study2"  # Unique identifier of the study.
+    rdb_storage = "postgresql://optuna:1234@118.67.134.6:6079/optuna"
     
     study = optuna.create_study(
         directions=["maximize", "minimize", "minimize"],
