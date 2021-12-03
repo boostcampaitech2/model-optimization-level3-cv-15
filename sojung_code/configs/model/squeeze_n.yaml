@@ -1,0 +1,57 @@
+input_channel: 3
+
+depth_multiple: 1.0
+width_multiple: 1.0
+
+backbone:
+    # [repeat, module, args]
+    [
+        # Conv argument: [out_channel, kernel_size, stride, padding_size]
+        # if padding_size is not given or null, the padding_size will be auto adjusted as padding='SAME' in TensorFlow
+        [1, Conv, [ 48, 7,2, null, 1]], #default
+        [1, GlobalMaxPool, []],
+        # k t c SE HS s
+        [1, Conv, [48, 16, 1]],
+        [1, Conv, [16, 64, 1]],
+        [1, Conv, [16, 64, 3,null,1]],  #Fire 1
+
+        [1, Conv, [64, 16, 1]],
+        [1, Conv, [16, 64, 1]],
+        [1, Conv, [16, 64, 3,null,1]],
+           #Fire 2
+        [1, Conv, [64, 32, 1]],
+        [1, Conv, [32, 128, 1]],
+        [1, Conv, [32, 128, 3,null,1]] ,
+           #Fire 3
+        [1, GlobalMaxPool, []],
+
+        [1, Conv, [64, 32, 1]],
+        [1, Conv, [32, 14, 1]],
+        [1, Conv, [32, 128, 3,null,1]],
+          #Fire 4
+
+        [1, Conv, [64, 48, 1]],
+        [1, Conv, [48, 96, 1]],
+        [1, Conv, [48, 96, 3,null,1]],  
+          #Fire5
+       
+         # 2-P2/4, 24 # stride 1 for cifar, 2 for others
+        [1, Conv, [64, 48, 1]],
+        [1, Conv, [48, 32, 1]],
+        [1, Conv, [48, 32, 3,null,1]],   
+          #Fire6
+       
+        [1, Conv, [64, 64, 1]],
+        [1, Conv, [64, 32, 1]],
+        [1, Conv, [64, 32, 3,null,1]], 
+          #Fire7
+       
+        [1, GlobalMaxPool, []], 
+        [1, Conv, [128, 64, 1]],
+        [1, Conv, [64, 32, 1]],
+        [1, Conv, [64, 32, 3,null,1]], 
+          #Fire8
+        [1, Flatten, []],
+        [1, Linear, [6]]
+    ]
+

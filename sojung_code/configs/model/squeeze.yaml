@@ -1,0 +1,32 @@
+input_channel: 3
+
+depth_multiple: 1.0
+width_multiple: 1.0
+
+backbone:
+    # [repeat, module, args]
+    [
+        # Conv argument: [out_channel, kernel_size, stride, padding_size]
+        # if padding_size is not given or null, the padding_size will be auto adjusted as padding='SAME' in TensorFlow
+        [1, Conv, [ 96, 7,2, null, 1]], #default
+        [1, MaxPool, [3,2,True]],
+        # k t c SE HS s
+        [1, Fire, [16,64,64]],
+        [1, Fire, [16,64,64]], # 2-P2/4, 24 # stride 1 for cifar, 2 for others
+        [1, Fire, [32, 128, 128]],     
+        [1, MaxPool, [3,2,True]], # 4-P3/8, 40
+        [1, Fire, [32, 128, 128]],     
+        [1, Fire, [48, 192, 192]],     
+        [1, Fire, [48, 192, 192]], # 7-P4/16, 80   
+        [1, Fire, [64, 256, 256]],
+        [1, MaxPool,[3,2,True]],
+        [1, Fire, [64, 256, 256]],
+        [1, Dropout, [0.5]],
+        [1, FixedConv, [1000,1,1]],
+        [1, GlobalAvgPool, []],
+        [1, Flatten,[]],
+        [1, Linear, [6]]
+    ]
+
+
+
